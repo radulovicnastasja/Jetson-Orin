@@ -26,12 +26,10 @@ static struct gpiod_line *dir_line[2];
 static int write_sysfs(const char *path, const char *value)
 {
     int fd = open(path, O_WRONLY);
-
     if (fd < 0) {
         perror(path);
         return -1;
     }
-
     if (write(fd, value, strlen(value)) < 0) {
         perror("write");
         close(fd);
@@ -45,28 +43,20 @@ static int write_sysfs(const char *path, const char *value)
 int pwm_init(void)
 {
     char path[100];
-
-    // --------------------------------------------------
     // Export PWM channel on pwmchip2
-    // --------------------------------------------------
     snprintf(path, sizeof(path),
              "/sys/class/pwm/pwmchip%d/pwm%d",
              PWM_CHIP2, PWM0);
-
     if (access(path, F_OK) != 0) {
         snprintf(path, sizeof(path),
                  "/sys/class/pwm/pwmchip%d/export",
                  PWM_CHIP2);
-
         if (write_sysfs(path, "0") < 0)
             return -1;
-
         usleep(100000);
     }
 
-    // --------------------------------------------------
     // Export PWM channel on pwmchip3
-    // --------------------------------------------------
     snprintf(path, sizeof(path),
              "/sys/class/pwm/pwmchip%d/pwm%d",
              PWM_CHIP3, PWM0);
@@ -75,16 +65,12 @@ int pwm_init(void)
         snprintf(path, sizeof(path),
                  "/sys/class/pwm/pwmchip%d/export",
                  PWM_CHIP3);
-
         if (write_sysfs(path, "0") < 0)
             return -1;
-
         usleep(100000);
     }
 
-    // --------------------------------------------------
     // Configure PWM periods
-    // --------------------------------------------------
     char period_str[20];
 
     snprintf(period_str, sizeof(period_str),
@@ -104,9 +90,7 @@ int pwm_init(void)
     if (write_sysfs(path, period_str) < 0)
         return -1;
 
-    // --------------------------------------------------
     // Set initial duty cycle to 0
-    // --------------------------------------------------
     snprintf(path, sizeof(path),
              "/sys/class/pwm/pwmchip%d/pwm%d/duty_cycle",
              PWM_CHIP2, PWM0);
@@ -121,9 +105,7 @@ int pwm_init(void)
     if (write_sysfs(path, "0") < 0)
         return -1;
 
-    // --------------------------------------------------
     // Enable PWM channels
-    // --------------------------------------------------
     snprintf(path, sizeof(path),
              "/sys/class/pwm/pwmchip%d/pwm%d/enable",
              PWM_CHIP2, PWM0);
@@ -138,16 +120,12 @@ int pwm_init(void)
     if (write_sysfs(path, "1") < 0)
         return -1;
 
-    // --------------------------------------------------
-    // Open GPIO chip
-    // --------------------------------------------------
+        // Open GPIO chip
     chip = gpiod_chip_open(GPIO_CHIP);
-
     if (!chip) {
         perror("gpiod_chip_open");
         return -1;
     }
-
     // Get direction GPIO lines
     dir_line[0] =
         gpiod_chip_get_line(chip, DIR_LINE_OFFSET);
@@ -165,7 +143,6 @@ int pwm_init(void)
     // Request direction lines as outputs
     if (gpiod_line_request_output(
             dir_line[0], "PWM_DIR0", 0) < 0) {
-
         perror("gpiod_line_request_output DIR0");
         gpiod_chip_close(chip);
         return -1;
@@ -173,13 +150,11 @@ int pwm_init(void)
 
     if (gpiod_line_request_output(
             dir_line[1], "PWM_DIR1", 0) < 0) {
-
         perror("gpiod_line_request_output DIR1");
         gpiod_line_release(dir_line[0]);
         gpiod_chip_close(chip);
         return -1;
     }
-
     return 0;
 }
 
@@ -199,19 +174,14 @@ int pwm_set_duty(int channel, float duty_cycle)
     if (duty_cycle < -1.0)
         duty_cycle = -1.0;
 
-    // --------------------------------------------------
-    // Set motor direction
-    // --------------------------------------------------
+        // Set motor direction
     int direction;
-
     if (duty_cycle >= 0.0)
         direction = 1;
     else
         direction = 0;
-
     if (gpiod_line_set_value(
             dir_line[channel], direction) < 0) {
-
         perror("gpiod_line_set_value");
         return -1;
     }
@@ -220,9 +190,7 @@ int pwm_set_duty(int channel, float duty_cycle)
     if (duty_cycle < 0.0)
         duty_cycle = -duty_cycle;
 
-    // --------------------------------------------------
     // Convert duty cycle to nanoseconds
-    // --------------------------------------------------
     char duty_cycle_str[20];
 
     snprintf(duty_cycle_str,
@@ -230,19 +198,14 @@ int pwm_set_duty(int channel, float duty_cycle)
              "%d",
              (int)(duty_cycle * PWM_PERIOD_NS));
 
-    // --------------------------------------------------
     // Select correct PWM channel
-    // --------------------------------------------------
     char path[100];
 
     if (channel == 0) {
-
         snprintf(path, sizeof(path),
                  "/sys/class/pwm/pwmchip%d/pwm%d/duty_cycle",
                  PWM_CHIP2, PWM0);
-
     } else {
-
         snprintf(path, sizeof(path),
                  "/sys/class/pwm/pwmchip%d/pwm%d/duty_cycle",
                  PWM_CHIP3, PWM0);
@@ -251,7 +214,6 @@ int pwm_set_duty(int channel, float duty_cycle)
     // Write duty cycle
     if (write_sysfs(path, duty_cycle_str) < 0)
         return -1;
-
     return 0;
 }
 
@@ -260,9 +222,7 @@ int pwm_cleanup(void)
 {
     char path[100];
 
-    // --------------------------------------------------
     // Disable PWM channels
-    // --------------------------------------------------
     snprintf(path, sizeof(path),
              "/sys/class/pwm/pwmchip%d/pwm%d/enable",
              PWM_CHIP2, PWM0);
@@ -275,9 +235,7 @@ int pwm_cleanup(void)
 
     write_sysfs(path, "0");
 
-    // --------------------------------------------------
     // Unexport PWM channels
-    // --------------------------------------------------
     snprintf(path, sizeof(path),
              "/sys/class/pwm/pwmchip%d/unexport",
              PWM_CHIP2);
@@ -290,9 +248,7 @@ int pwm_cleanup(void)
 
     write_sysfs(path, "0");
 
-    // --------------------------------------------------
     // Release GPIO direction lines
-    // --------------------------------------------------
     if (dir_line[0])
         gpiod_line_release(dir_line[0]);
 
