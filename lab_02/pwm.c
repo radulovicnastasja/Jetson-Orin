@@ -6,7 +6,8 @@
 #include <gpiod.h>
 #include "pwm.h"
 
-// PWM chips and channels
+// PWM chips and channelspass-4700
+
 static const int PWM_CHIP2 = 2;
 static const int PWM_CHIP3 = 3;
 static const int PWM0 = 0;
