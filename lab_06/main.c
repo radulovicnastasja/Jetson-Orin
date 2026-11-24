@@ -70,7 +70,11 @@ int main(int argc,char **argv)
         struct pollfd pfd={.fd=pad.fd,.events=POLLIN|POLLERR|POLLHUP|POLLNVAL};
         int pr=poll(&pfd,1,0);
         if (pr<0) { if (errno == EINTR) continue; perror("poll"); failed=1; break; }
-        if (pr>0 && (pfd.revents&(POLLERR|POLLHUP|POLLNVAL))) { fputs("Gamepad disconnected\n",stderr); failed=1; break; }
+       if (pr > 0 && (pfd.revents & (POLLERR | POLLHUP | POLLNVAL))) {
+    fprintf(stderr, "Gamepad poll error: revents=0x%x\n", pfd.revents);
+    failed = 1;
+    break;
+}
         if (gamepad_poll(&pad)<0) { failed=1; break; }
         if (!pad.running) break;
         double target=(!pad.stopped && pad.vertical!=0) ? pad.vertical*(pad.fast?FAST_SPEED_PPS:SLOW_SPEED_PPS) : 0.0;
